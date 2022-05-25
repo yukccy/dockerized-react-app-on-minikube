@@ -1,0 +1,60 @@
+stages:
+  - build
+  - deploy
+
+cache:
+  paths:
+    - node_modules
+
+npm_build:
+  image: node:16.15.0-stretch-slim
+  stage: build
+  script:
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - ./build
+
+deploy_prod:
+  stage: deploy
+  dependencies:
+    - npm_build
+  image: python:latest
+  environment:
+    name: production
+  only:
+    refs:
+      - main
+  script:
+    - pip install awscli
+    - aws s3 sync ./build/ s3://$s3_bucket_name
+
+deploy_release:
+  stage: deploy
+  dependencies:
+    - npm_build
+  image: python:latest
+  environment:
+    name: release
+  only:
+    refs:
+      - release
+  script:
+    - pip install awscli
+    - aws s3 sync ./build/ s3://$s3_bucket_name
+
+deploy_dev:
+  stage: deploy
+  dependencies:
+    - npm_build
+  image: python:latest
+  environment:
+    name: dev
+  only:
+    refs:
+      - dev
+  script:
+    - pip install awscli
+    - aws s3 sync ./build/ s3://$s3_bucket_name
+
